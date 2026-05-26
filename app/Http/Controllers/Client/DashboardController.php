@@ -16,7 +16,7 @@ class DashboardController extends Controller
 
         // KPI: Active Cases
         $activeCases = LegalCase::where('client_id', $clientId)
-            ->where('status', '!=', 'closed')
+            ->where('status', '!=', 'resolution')
             ->count();
 
         // KPI: Upcoming Appointments

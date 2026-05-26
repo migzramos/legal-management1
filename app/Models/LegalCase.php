@@ -13,20 +13,24 @@ class LegalCase extends Model
     protected $table = 'cases';
 
     protected $fillable = [
-        'case_number',
-        'title',
-        'description',
-        'category_id',
-        'court_type_id',
-        'lawyer_id',
-        'client_id',
-        'status',
-        'filed_date',
-        'hearing_date',
-        'next_hearing_date',
-        'closed_date',
-        'notes',
-    ];
+    'case_number',
+    'title',
+    'description',
+    'category_id',
+    'court_type_id',
+    'lawyer_id',
+    'client_id',
+    'status',
+    'filed_date',
+    'hearing_date',
+    'next_hearing_date',
+    'closed_date',
+    'court_name',
+    'judge_name',
+    'opposing_party',
+    'opposing_counsel',
+    'notes',
+];
 
     protected $casts = [
         'filed_date'        => 'date',

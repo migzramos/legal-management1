@@ -120,7 +120,7 @@ class InvoiceController extends Controller
         $this->authorize('view', $invoice);
         $invoice->load(['client:id,name,email', 'case:id,title,case_number', 'items', 'paymentTransactions']);
 
-        return view('lawyer.invoice-detail', compact('invoice'));
+        return view('client.invoice-detail', compact('invoice'));
     }
 
     public function edit(Invoice $invoice)

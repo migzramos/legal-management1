@@ -1,36 +1,36 @@
 <?php
-
+ 
 use Illuminate\Support\Facades\Route;
-
+ 
 Route::get('/', function () {
     return view('auth.landingpage');
 })->name('home');
-
+ 
 Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/dashboard', function () {
         $user = auth()->user();
-
+ 
         if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
-
+ 
         if ($user->isLawyer()) {
             return redirect()->route('lawyer.dashboard');
         }
-
+ 
         return redirect()->route('client.dashboard');
     })->name('dashboard');
 });
-
+ 
 Route::middleware(['auth', 'active.user', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::redirect('/', '/admin/dashboard');
-
+ 
         Route::get('dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])
             ->name('dashboard');
-
+ 
         Route::get('users', [\App\Http\Controllers\Admin\UserController::class, 'index'])
             ->name('users.index');
         Route::get('users/export', [\App\Http\Controllers\Admin\UserController::class, 'export'])
@@ -47,36 +47,29 @@ Route::middleware(['auth', 'active.user', 'admin'])
             ->name('users.toggle-active');
         Route::post('users/{user}/assign-lawyer', [\App\Http\Controllers\Admin\UserController::class, 'assignLawyer'])
             ->name('users.assign-lawyer');
-
+ 
         Route::get('calendar', [\App\Http\Controllers\Admin\CalendarController::class, 'index'])
             ->name('calendar');
-
+ 
         Route::post('calendar/schedules', [\App\Http\Controllers\Admin\CalendarController::class, 'store'])
             ->name('calendar.store');
-
+ 
         // ─── Reports ──────────────────────────────────────────────────────────
-        // Dashboard view  →  /admin/reports
         Route::get('reports', [\App\Http\Controllers\Admin\ReportController::class, 'page'])
             ->name('reports.page');
-
-        // JSON API (AJAX only)  →  /admin/reports/overview
         Route::get('reports/overview', [\App\Http\Controllers\Admin\ReportController::class, 'overview'])
             ->name('reports.overview');
-
-        // PDF export  →  /admin/reports/export
         Route::get('reports/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])
             ->name('reports.export');
-
-        // Audit logs JSON  →  /admin/reports/audit-logs
         Route::get('reports/audit-logs', [\App\Http\Controllers\Admin\ReportController::class, 'auditLogs'])
             ->name('reports.audit-logs');
         // ──────────────────────────────────────────────────────────────────────
-
+ 
         Route::get('messages', [\App\Http\Controllers\Admin\MessageController::class, 'index'])
             ->name('messages');
         Route::post('messages', [\App\Http\Controllers\Admin\MessageController::class, 'store'])
             ->name('messages.store');
-
+ 
         Route::get('lawyer-messages', [\App\Http\Controllers\Admin\AdminMessageController::class, 'index'])
             ->name('lawyer-messages.index');
         Route::get('lawyer-messages/{user}', [\App\Http\Controllers\Admin\AdminMessageController::class, 'getConversation'])
@@ -87,17 +80,17 @@ Route::middleware(['auth', 'active.user', 'admin'])
             ->name('lawyer-messages.mark-read');
         Route::delete('lawyer-messages/{adminMessage}', [\App\Http\Controllers\Admin\AdminMessageController::class, 'delete'])
             ->name('lawyer-messages.delete');
-
+ 
         Route::get('audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])
             ->name('audit-logs.index');
         Route::get('audit-logs/{auditLog}', [\App\Http\Controllers\Admin\AuditLogController::class, 'show'])
             ->name('audit-logs.show');
-
+ 
         Route::get('notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])
             ->name('notifications');
         Route::post('notifications/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markRead'])
             ->name('notifications.read');
-
+ 
         Route::get('categories', [\App\Http\Controllers\Admin\CaseCategoryController::class, 'index'])
             ->name('categories.index');
         Route::post('categories', [\App\Http\Controllers\Admin\CaseCategoryController::class, 'store'])
@@ -106,7 +99,7 @@ Route::middleware(['auth', 'active.user', 'admin'])
             ->name('categories.update');
         Route::delete('categories/{caseCategory}', [\App\Http\Controllers\Admin\CaseCategoryController::class, 'destroy'])
             ->name('categories.destroy');
-
+ 
         Route::get('court-types', [\App\Http\Controllers\Admin\CourtTypeController::class, 'index'])
             ->name('court-types.index');
         Route::post('court-types', [\App\Http\Controllers\Admin\CourtTypeController::class, 'store'])
@@ -115,16 +108,15 @@ Route::middleware(['auth', 'active.user', 'admin'])
             ->name('court-types.update');
         Route::delete('court-types/{courtType}', [\App\Http\Controllers\Admin\CourtTypeController::class, 'destroy'])
             ->name('court-types.destroy');
-
+ 
         Route::get('billing-rates', [\App\Http\Controllers\Admin\BillingRateController::class, 'index'])
             ->name('billing-rates.index');
         Route::post('billing-rates', [\App\Http\Controllers\Admin\BillingRateController::class, 'store'])
             ->name('billing-rates.store');
         Route::delete('billing-rates/{billingRate}', [\App\Http\Controllers\Admin\BillingRateController::class, 'destroy'])
             ->name('billing-rates.destroy');
-        
     });
-
+ 
 Route::middleware(['auth', 'active.user', 'lawyer'])
     ->prefix('lawyer')
     ->name('lawyer.')
@@ -207,6 +199,14 @@ Route::middleware(['auth', 'active.user', 'lawyer'])
             ->name('billing.invoices.destroy');
         Route::get('billing/payment-methods', [\App\Http\Controllers\Lawyer\BillingController::class, 'paymentMethods'])
             ->name('billing.payment-methods');
+ 
+        // ─── Payment Transaction Confirm / Reject ─────────────────────────────
+        Route::patch('billing/transactions/{transaction}/confirm', [\App\Http\Controllers\Lawyer\PaymentTransactionController::class, 'confirm'])
+            ->name('billing.transactions.confirm');
+        Route::patch('billing/transactions/{transaction}/reject', [\App\Http\Controllers\Lawyer\PaymentTransactionController::class, 'reject'])
+            ->name('billing.transactions.reject');
+        // ──────────────────────────────────────────────────────────────────────
+ 
         Route::get('appointments', [\App\Http\Controllers\Lawyer\AppointmentController::class, 'index'])
             ->name('appointments.index');
         Route::get('appointments/{appointment}', [\App\Http\Controllers\Lawyer\AppointmentController::class, 'show'])
@@ -248,7 +248,7 @@ Route::middleware(['auth', 'active.user', 'lawyer'])
         Route::get('appointments/{appointment}/messages', [\App\Http\Controllers\Lawyer\MessageController::class, 'appointmentThread'])
             ->name('appointments.messages');
     });
-
+ 
 Route::middleware(['auth', 'active.user', 'client'])
     ->prefix('client')
     ->name('client.')
@@ -299,27 +299,13 @@ Route::middleware(['auth', 'active.user', 'client'])
             ->name('notifications.read');
         Route::get('appointments/{appointment}/messages', [\App\Http\Controllers\Client\MessageController::class, 'appointmentThread'])
             ->name('appointments.messages');
-        Route::get('payment-methods', [\App\Http\Controllers\Client\PaymentController::class, 'index'])
-            ->name('payment-methods.index');
-        Route::post('payment-methods/setup-intent', [\App\Http\Controllers\Client\PaymentController::class, 'createSetupIntent'])
-            ->name('payment-methods.setup-intent');
-        Route::post('payment-methods', [\App\Http\Controllers\Client\PaymentController::class, 'store'])
-            ->name('payment-methods.store');
         Route::post('invoices/{invoice}/pay', [\App\Http\Controllers\Client\PaymentController::class, 'initiate'])
             ->name('invoices.pay');
-        Route::get('payments/methods', [\App\Http\Controllers\Client\PaymentTransactionController::class, 'getPaymentMethods'])
-            ->name('payments.methods');
-        Route::post('payments/initiate', [\App\Http\Controllers\Client\PaymentTransactionController::class, 'initiatePayment'])
-            ->name('payments.initiate');
-        Route::get('payments/{paymentTransaction}/status', [\App\Http\Controllers\Client\PaymentTransactionController::class, 'getTransactionStatus'])
-            ->name('payments.status');
         Route::get('payments/success', [\App\Http\Controllers\Client\PaymentController::class, 'success'])
             ->name('payments.success');
         Route::get('payments/failed', [\App\Http\Controllers\Client\PaymentController::class, 'failed'])
             ->name('payments.failed');
     });
-
-Route::post('webhooks/paymongo', [\App\Http\Controllers\Client\PaymentController::class, 'webhook'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-
+ 
 require __DIR__.'/auth.php';
+ 

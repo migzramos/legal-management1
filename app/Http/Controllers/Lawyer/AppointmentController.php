@@ -45,7 +45,7 @@ class AppointmentController extends Controller
             'messages' => fn($q) => $q->with('sender:id,name')->orderBy('created_at', 'asc')
         ]);
         
-        return view('lawyer.appointment-detail', compact('appointment'));
+        return view('lawyer.appoinments.appointment-detail', compact('appointment'));
     }
 
     /**

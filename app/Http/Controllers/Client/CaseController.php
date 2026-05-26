@@ -13,24 +13,38 @@ use Illuminate\Support\Facades\Mail;
 
 class CaseController extends Controller
 {
-    public function index()
+        public function index()
     {
-        $cases = LegalCase::with([
-                'client:id,name,email,phone',
+        $clientId  = auth()->id();
+        $status    = request('status');
+
+        $activeStatuses = ['intake', 'barangay_mediation', 'escalation_to_court', 'active_case'];
+
+        $query = LegalCase::with([
+                'lawyer:id,name',
                 'category:id,name',
-                'courtType:id,name',
             ])
-            ->where('lawyer_id', auth()->id())
-            ->latest()
-            ->paginate(15);
+            ->withCount(['documents', 'invoices'])
+            ->where('client_id', $clientId);
 
-        $documents = \App\Models\Document::with('case:id,title')
-            ->whereHas('case', fn($q) => $q->where('lawyer_id', auth()->id()))
-            ->latest()
-            ->paginate(15);
+        if ($status === 'active') {
+            $query->whereIn('status', $activeStatuses);
+        } elseif ($status === 'resolved') {
+            $query->where('status', 'resolution');
+        }
 
-  return view('client.cases', compact('cases', 'documents'));
-    }
+        $cases = $query->latest()->paginate(15);
+
+        $tabCounts = [
+            'all'      => LegalCase::where('client_id', $clientId)->count(),
+            'active'   => LegalCase::where('client_id', $clientId)->whereIn('status', $activeStatuses)->count(),
+            'resolved' => LegalCase::where('client_id', $clientId)->where('status', 'resolution')->count(),
+        ];
+
+        $activeTab = $status ?? 'all';
+
+        return view('client.cases', compact('cases', 'tabCounts', 'activeTab'));
+    } 
 
     public function create()
     {

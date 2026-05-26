@@ -1,6 +1,6 @@
 <?php
 namespace App\Http\Controllers\Lawyer;
-
+ 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreMessageRequest;
 use App\Mail\NewMessage;
@@ -10,24 +10,21 @@ use App\Models\Message;
 use App\Models\User;
 use App\Services\AppointmentMessagingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-
+ 
 class MessageController extends Controller
 {
-    // ─── Case-based messaging ────────────────────────────────────────────────
-
-    /**
-     * List all case threads for the authenticated lawyer.
-     */
     public function list()
     {
         $lawyer = auth()->user();
-
+ 
         $cases = LegalCase::where('lawyer_id', $lawyer->id)
             ->with('client:id,name')
             ->get();
-
+ 
         $messages = Message::whereHas('case', function ($q) use ($lawyer) {
                 $q->where('lawyer_id', $lawyer->id);
             })
@@ -38,65 +35,106 @@ class MessageController extends Controller
             ->with(['case:id,title,case_number', 'sender:id,name,role', 'receiver:id,name,role'])
             ->latest()
             ->paginate(20);
-
-        // Mark received case messages as read
+ 
         Message::whereHas('case', function ($q) use ($lawyer) {
                 $q->where('lawyer_id', $lawyer->id);
             })
             ->where('receiver_id', $lawyer->id)
             ->where('is_read', false)
             ->update(['is_read' => true, 'read_at' => now()]);
-
+ 
         return view('lawyer.messages-list', compact('cases', 'messages'));
     }
-
-    /**
-     * Show a specific case thread.
-     */
-    public function index(LegalCase $case)
+ 
+    public function index(LegalCase $case, Request $request)
     {
         $this->authorize('view', $case);
-
-        // Fetch all cases for the sidebar
-        $cases = LegalCase::where('lawyer_id', auth()->id())
+ 
+        $clientId = $case->client_id;
+        $lawyerId = auth()->id();
+ 
+        if ($request->ajax() || $request->wantsJson()) {
+            $after = (int) $request->query('after', 0);
+ 
+            $newMessages = Message::where('id', '>', $after)
+                ->where(function ($q) use ($case, $clientId, $lawyerId) {
+                    $q->where('case_id', $case->id)
+                      ->orWhere(function ($q2) use ($clientId, $lawyerId) {
+                          $q2->whereNull('case_id')
+                             ->where(function ($q3) use ($clientId, $lawyerId) {
+                                 $q3->where('sender_id', $clientId)
+                                    ->where('receiver_id', $lawyerId);
+                             })
+                             ->orWhere(function ($q3) use ($clientId, $lawyerId) {
+                                 $q3->where('sender_id', $lawyerId)
+                                    ->where('receiver_id', $clientId);
+                             });
+                      });
+                })
+                ->with('sender:id,name,role')
+                ->oldest()
+                ->get()
+                ->map(fn($m) => [
+                    'id'          => $m->id,
+                    'sender_id'   => $m->sender_id,
+                    'sender_name' => $m->sender->name ?? 'Unknown',
+                    'sender_role' => $m->sender->role ?? 'client',
+                    'body'        => e($m->body),
+                    'created_at'  => $m->created_at->format('M d, g:i A'),
+                ]);
+ 
+            Message::where('receiver_id', $lawyerId)
+                ->where('id', '>', $after)
+                ->where('is_read', false)
+                ->update(['is_read' => true, 'read_at' => now()]);
+ 
+            return response()->json(['messages' => $newMessages]);
+        }
+ 
+        $cases = LegalCase::where('lawyer_id', $lawyerId)
             ->with('client:id,name')
             ->get();
-
-        // Alias for the active thread
+ 
         $activeCase = $case;
-
-        $messages = Message::where('case_id', $case->id)
-            ->where(function ($q) {
-                $q->where('sender_id', auth()->id())
-                  ->orWhere('receiver_id', auth()->id());
+ 
+        $messages = Message::where(function ($q) use ($case, $clientId, $lawyerId) {
+                $q->where('case_id', $case->id)
+                  ->orWhere(function ($q2) use ($clientId, $lawyerId) {
+                      $q2->whereNull('case_id')
+                         ->where(function ($q3) use ($clientId, $lawyerId) {
+                             $q3->where('sender_id', $clientId)
+                                ->where('receiver_id', $lawyerId);
+                         })
+                         ->orWhere(function ($q3) use ($clientId, $lawyerId) {
+                             $q3->where('sender_id', $lawyerId)
+                                ->where('receiver_id', $clientId);
+                         });
+                  });
             })
             ->with('sender:id,name,role', 'receiver:id,name,role')
             ->oldest()
             ->get();
-
-        // Mark received messages as read
-        Message::where('case_id', $case->id)
-            ->where('receiver_id', auth()->id())
+ 
+        Message::where('receiver_id', $lawyerId)
             ->where('is_read', false)
             ->update(['is_read' => true, 'read_at' => now()]);
-
+ 
         return view('lawyer.messages', compact('cases', 'activeCase', 'messages'));
     }
-
-    /**
-     * Send a message — routes to appointment or case thread based on payload.
-     */
-    public function store(StoreMessageRequest $request): JsonResponse
+ 
+    public function store(StoreMessageRequest $request)
     {
         try {
             if ($request->filled('appointment_id')) {
-                // ── Appointment-based thread ──
                 $appointment = Appointment::findOrFail($request->appointment_id);
-
+ 
                 if ($appointment->lawyer_id !== auth()->id()) {
-                    return response()->json(['error' => 'Unauthorized.'], 403);
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['error' => 'Unauthorized.'], 403);
+                    }
+                    abort(403);
                 }
-
+ 
                 $message = AppointmentMessagingService::sendMessage(
                     $appointment,
                     auth()->id(),
@@ -104,10 +142,9 @@ class MessageController extends Controller
                     $request->body
                 );
             } else {
-                // ── Case-based thread ──
                 $case = LegalCase::findOrFail($request->case_id);
                 $this->authorize('view', $case);
-
+ 
                 $message = Message::create([
                     'case_id'     => $request->case_id,
                     'sender_id'   => auth()->id(),
@@ -116,50 +153,60 @@ class MessageController extends Controller
                     'is_read'     => false,
                 ]);
             }
-
+ 
             $receiver = User::find($request->receiver_id);
             if ($receiver && $receiver->email) {
                 $link = $request->filled('case_id')
                     ? route('client.messages.index', $request->case_id)
                     : route('client.appointments.messages', $appointment->id ?? null);
-
+ 
                 Mail::to($receiver->email)->queue(new NewMessage($message, $link));
             }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Message sent.',
-                'data'    => $message->load('sender:id,name', 'receiver:id,name'),
-            ], 201);
-
+ 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Message sent.',
+                    'data'    => $message->load('sender:id,name,role', 'receiver:id,name,role'),
+                ], 201);
+            }
+ 
+            if ($request->filled('case_id')) {
+                return redirect()
+                    ->route('lawyer.messages.index', $request->case_id)
+                    ->with('success', 'Message sent.');
+            }
+ 
+            return redirect()->back()->with('success', 'Message sent.');
+ 
         } catch (\Exception $e) {
             Log::error('Lawyer message send failed', [
                 'user_id' => auth()->id(),
                 'error'   => $e->getMessage(),
             ]);
-
-            return response()->json([
-                'success' => false,
-                'error'   => 'Failed to send message. Please try again.',
-            ], 500);
+ 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Failed to send message. Please try again.',
+                ], 500);
+            }
+ 
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to send message. Please try again.');
         }
     }
-
-    // ─── Appointment-based messaging ─────────────────────────────────────────
-
-    /**
-     * View appointment message thread (web) or poll new messages (AJAX/JSON).
-     */
-    public function appointmentThread(Appointment $appointment, \Illuminate\Http\Request $request)
+ 
+    public function appointmentThread(Appointment $appointment, Request $request)
     {
         if ($appointment->lawyer_id !== auth()->id()) {
             abort(403);
         }
-
-        // AJAX polling: return only messages newer than `after` ID
+ 
         if ($request->ajax() || $request->wantsJson()) {
             $after = (int) $request->query('after', 0);
-
+ 
             $newMessages = $appointment->messages()
                 ->with('sender:id,name')
                 ->where('id', '>', $after)
@@ -171,15 +218,14 @@ class MessageController extends Controller
                     'body'        => e($m->body),
                     'created_at'  => $m->created_at->format('M d, g:i A'),
                 ]);
-
+ 
             return response()->json(['messages' => $newMessages]);
         }
-
-        // Full page load
+ 
         $messages = AppointmentMessagingService::getConversationThread($appointment);
-
         AppointmentMessagingService::markAsRead($appointment, auth()->id());
-
+ 
         return view('lawyer.appointment-messages', compact('appointment', 'messages'));
     }
 }
+ 

@@ -17,8 +17,8 @@ class DashboardController extends Controller
     public function index()
     {
         $lawyerId = auth()->id();
-        $activeStatuses = ['intake', 'barangay_mediation', 'escalation_to_court', 'active_case', 'open', 'ongoing'];
-
+        $activeStatuses = ['intake', 'barangay_mediation', 'escalation_to_court', 'active_case'];
+    
         $activeCases = LegalCase::where('lawyer_id', $lawyerId)
             ->whereIn('status', $activeStatuses)
             ->count();

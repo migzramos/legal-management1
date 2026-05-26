@@ -63,9 +63,9 @@
 <body>
 <div class="app-layout">
     @include('admin.partials.sidebar')
-
+ 
     <div class="main-area">
-
+ 
         <!-- Topbar -->
         <div class="topbar">
             <div>
@@ -92,9 +92,9 @@
                 </button>
             </div>
         </div>
-
+ 
         <div class="page-content">
-
+ 
             @if(session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
@@ -102,7 +102,7 @@
                 <div class="alert alert-error">{{ session('error') }}</div>
             @endif
             <div id="flash-msg"></div>
-
+ 
             <!-- KPI Cards -->
             <div class="kpi-row">
                 <div class="kpi-card">
@@ -146,7 +146,7 @@
                     <div class="kpi-meta">System administrators</div>
                 </div>
             </div>
-
+ 
             <!-- Table Section -->
             <div class="card">
                 <div class="card-header">
@@ -190,24 +190,24 @@
                     </table>
                 </div>
             </div>
-
+ 
         </div>
     </div>
 </div>
-
-<!-- ✅ Add User Modal — now submits to real backend -->
+ 
+<!-- Add User Modal -->
 <div class="modal-overlay" id="addUserModal" onclick="if(event.target===this)closeModal('addUserModal')">
     <div class="modal-box">
         <button class="modal-close" onclick="closeModal('addUserModal')">✕</button>
         <div class="modal-title">Add New User</div>
         <div class="modal-sub">Create a new account with a specific role</div>
-
+ 
         @if($errors->any())
             <div class="alert alert-error" style="margin-bottom:16px;">
                 {{ $errors->first() }}
             </div>
         @endif
-
+ 
         <form method="POST" action="{{ route('admin.users.store') }}">
             @csrf
             <div class="form-grid">
@@ -254,8 +254,8 @@
         </form>
     </div>
 </div>
-
-<!-- Edit User Modal (still JS only — wire up separately if needed) -->
+ 
+<!-- Edit User Modal -->
 <div class="modal-overlay" id="editUserModal" onclick="if(event.target===this)closeModal('editUserModal')">
     <div class="modal-box">
         <button class="modal-close" onclick="closeModal('editUserModal')">✕</button>
@@ -276,7 +276,7 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">Role</label>
-                    <select id="editRole" class="form-control">
+                    <select id="editRole" class="form-control" onchange="toggleHourlyRateField()">
                         <option value="client">Client</option>
                         <option value="lawyer">Lawyer</option>
                         <option value="admin">Admin</option>
@@ -287,11 +287,18 @@
                     <input type="text" id="editPhone" class="form-control">
                 </div>
             </div>
+            {{-- Hourly Rate — only shown for lawyers --}}
+            <div class="form-group" id="hourlyRateGroup" style="display:none;">
+                <label class="form-label">Hourly Rate (₱)
+                    <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);">(leave blank to keep current)</span>
+                </label>
+                <input type="number" id="editHourlyRate" class="form-control" min="0" step="0.01" placeholder="e.g. 500.00">
+            </div>
             <div class="form-group">
                 <label class="form-label">New Password
                     <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);">(leave blank to keep current)</span>
                 </label>
-                <input type="password" class="form-control" placeholder="Optional">
+                <input type="password" id="editPassword" class="form-control" placeholder="Optional">
             </div>
             <div style="display:flex;gap:12px;margin-top:8px;">
                 <button type="button" class="btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
@@ -300,7 +307,7 @@
         </form>
     </div>
 </div>
-
+ 
 <!-- Assign Lawyer Modal -->
 <div class="modal-overlay" id="assignModal" onclick="if(event.target===this)closeModal('assignModal')">
     <div class="modal-box">
@@ -322,13 +329,13 @@
         </form>
     </div>
 </div>
-
+ 
 <script>
 const palette = ['#7c3aed','#34d399','#fbbf24','#f87171','#60a5fa','#a855f7','#fb923c','#38bdf8'];
 function avatarColor(id){ return palette[(id-1) % palette.length]; }
 function initials(n){ return n.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 function escJs(s){ return s.replace(/'/g,"\\'"); }
-
+ 
 let users = {!! json_encode($users->map(fn($u) => [
     'id'       => $u->id,
     'name'     => $u->name,
@@ -340,15 +347,15 @@ let users = {!! json_encode($users->map(fn($u) => [
     'active'   => (bool)$u->is_active,
     'assigned' => null,
 ])) !!};
-
+ 
 let nextId = {{ $users->max('id') + 1 }};
 let activeRole = 'all';
 const lawyers = {!! json_encode($lawyers->map(fn($l) => ['id' => $l->id, 'name' => $l->name])) !!};
-
+ 
 function render(list) {
     const tb = document.getElementById('tbody');
     document.getElementById('userCountBadge').textContent = list.length;
-
+ 
     if (!list.length) {
         tb.innerHTML = `<tr class="empty-row"><td colspan="8">
             <div class="empty-icon">
@@ -363,7 +370,7 @@ function render(list) {
         </td></tr>`;
         return;
     }
-
+ 
     tb.innerHTML = list.map(u => {
         const c = avatarColor(u.id);
         const roleBadge = {
@@ -371,7 +378,7 @@ function render(list) {
             client: ['badge-purple',  'CLIENT'],
             admin:  ['badge-danger',  'ADMIN'],
         }[u.role] || ['badge-secondary', u.role.toUpperCase()];
-
+ 
         const assignedCell = u.role === 'client'
             ? (u.assigned
                 ? `<div style="display:flex;align-items:center;gap:6px;">
@@ -380,7 +387,7 @@ function render(list) {
                    </div>`
                 : `<span style="color:var(--text-muted);font-size:.78rem;">Not assigned</span>`)
             : `<span style="color:var(--text-muted);">—</span>`;
-
+ 
         const assignBtn = u.role === 'client'
             ? `<button class="act-btn warn" title="Assign lawyer" onclick="openAssignModal(${u.id},'${escJs(u.name)}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -390,7 +397,7 @@ function render(list) {
                 </svg>
                </button>`
             : '';
-
+ 
         return `<tr data-role="${u.role}" data-id="${u.id}">
             <td>
                 <div class="user-cell">
@@ -431,7 +438,7 @@ function render(list) {
         </tr>`;
     }).join('');
 }
-
+ 
 function getFiltered() {
     const q = document.getElementById('srch').value.toLowerCase();
     return users.filter(u =>
@@ -448,31 +455,95 @@ function doFilter(role, btn) {
 }
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-// Edit user (JS only — no backend wired yet)
+ 
+function toggleHourlyRateField() {
+    const role = document.getElementById('editRole').value;
+    document.getElementById('hourlyRateGroup').style.display = role === 'lawyer' ? 'block' : 'none';
+}
+ 
 function openEditModal(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
-    document.getElementById('editUserId').value = id;
-    document.getElementById('editName').value   = u.name;
-    document.getElementById('editEmail').value  = u.email;
-    document.getElementById('editRole').value   = u.role;
-    document.getElementById('editPhone').value  = u.phone || '';
+    document.getElementById('editUserId').value  = id;
+    document.getElementById('editName').value    = u.name;
+    document.getElementById('editEmail').value   = u.email;
+    document.getElementById('editRole').value    = u.role;
+    document.getElementById('editPhone').value   = u.phone || '';
+    document.getElementById('editHourlyRate').value = '';
+    document.getElementById('editPassword').value   = '';
+    toggleHourlyRateField();
     openModal('editUserModal');
 }
+ 
 function handleEditUser(e) {
     e.preventDefault();
-    const id = parseInt(document.getElementById('editUserId').value);
-    const u  = users.find(x => x.id === id);
+    const id       = parseInt(document.getElementById('editUserId').value);
+    const u        = users.find(x => x.id === id);
+    const role     = document.getElementById('editRole').value;
+    const hourlyRate = document.getElementById('editHourlyRate').value;
+    const password   = document.getElementById('editPassword').value;
     if (!u) return;
-    u.name  = document.getElementById('editName').value.trim();
-    u.email = document.getElementById('editEmail').value.trim();
-    u.role  = document.getElementById('editRole').value;
-    u.phone = document.getElementById('editPhone').value.trim();
-    closeModal('editUserModal');
-    flash('User updated successfully.');
-    render(getFiltered());
+ 
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+ 
+    // Build payload for user update
+    const payload = {
+        name:  document.getElementById('editName').value.trim(),
+        email: document.getElementById('editEmail').value.trim(),
+        role:  role,
+        phone: document.getElementById('editPhone').value.trim(),
+    };
+    if (password) payload.password = password;
+ 
+    // 1. Update user details
+    fetch(`/admin/users/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.message) {
+            // Update local JS state
+            u.name  = payload.name;
+            u.email = payload.email;
+            u.role  = payload.role;
+            u.phone = payload.phone;
+ 
+            // 2. If lawyer and hourly rate provided, save billing rate
+            if (role === 'lawyer' && hourlyRate) {
+                fetch('/admin/billing-rates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        lawyer_id:      id,
+                        hourly_rate:    parseFloat(hourlyRate),
+                        currency:       'PHP',
+                        effective_date: new Date().toISOString().split('T')[0],
+                    }),
+                })
+                .then(r => r.json())
+                .then(() => flash('User and hourly rate updated successfully.'))
+                .catch(() => flash('User updated but failed to save hourly rate.'));
+            } else {
+                flash('User updated successfully.');
+            }
+ 
+            closeModal('editUserModal');
+            render(getFiltered());
+        }
+    })
+    .catch(() => flash('Failed to update user.'));
 }
+ 
 function toggleActive(id) {
     const u = users.find(x => x.id === id);
     if (!u) return;
@@ -512,12 +583,12 @@ function flash(msg) {
     el.innerHTML = `<div class="alert alert-success" style="margin-bottom:16px;">${msg}</div>`;
     setTimeout(() => el.innerHTML = '', 3000);
 }
-
+ 
 // Auto-open modal if there were validation errors
 @if($errors->any())
     document.addEventListener('DOMContentLoaded', () => openModal('addUserModal'));
 @endif
-
+ 
 render(getFiltered());
 </script>
 </body>

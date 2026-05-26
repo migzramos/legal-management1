@@ -117,9 +117,10 @@ class User extends Authenticatable
         return $this->hasMany(Appointment::class, 'client_id');
     }
 
-    public function billingRates()
+    public function billingRate()
     {
-        return $this->hasMany(BillingRate::class, 'lawyer_id');
+    return $this->hasOne(BillingRate::class, 'lawyer_id')
+                ->latestOfMany('effective_date');
     }
 
     public function auditLogs()

@@ -1,67 +1,68 @@
-@extends('layouts.lawyer')
 
+@extends('layouts.lawyer')
+ 
 @section('title', 'Messages')
 @section('page_title', '')
 @section('page_subtitle', '')
-
+ 
 @push('styles')
 <style>
 /* ─────────────────────────────────────────────────────────────────
    RESET — kill layout chrome so our shell owns the viewport
 ───────────────────────────────────────────────────────────────── */
 html, body { overflow: hidden; height: 100%; }
-
+ 
 /* Hide global topbar */
 .topbar, .top-bar, nav.topbar, header.topbar,
 [class*="topbar"], [class*="top-bar"],
 .navbar-top, .layout-topbar, .app-topbar { display: none !important; }
-
+ 
 /* Hide page title row injected by the layout */
 .page-header, .page-title-bar, .page-topbar,
 [class*="page-header"], [class*="page-subtitle"],
 .page > h1, .page > .header, .page > .title-row { display: none !important; }
-
+ 
 /* Collapse .page wrapper so it doesn't push anything */
 .page {
     padding: 0 !important; margin: 0 !important;
     overflow: visible !important; display: block !important;
     height: 0 !important; min-height: 0 !important;
 }
-
+ 
 /* ─────────────────────────────────────────────────────────────────
    TOKENS
 ───────────────────────────────────────────────────────────────── */
 :root {
     --nav-w: 60px;          /* left icon rail width  */
-
+ 
     --void:    #07051a;
     --surface: #0d0b1c;
     --raised:  #110e26;
-
+ 
     --p:  #7c3aed;
     --p2: #a855f7;
     --p3: #c084fc;
-
+ 
     --b0: rgba(139,92,246,0.07);
     --b1: rgba(139,92,246,0.13);
     --b2: rgba(139,92,246,0.24);
     --b3: rgba(139,92,246,0.42);
-
+ 
     --t1: rgba(237,232,255,0.96);
     --t2: rgba(237,232,255,0.65);
     --t3: rgba(237,232,255,0.38);
     --t4: rgba(237,232,255,0.18);
-
+ 
     --success: #34d399;
     --danger:  #f87171;
-
+ 
     --r-sm: 8px;
     --r-md: 11px;
     --r-lg: 14px;
-
+ 
     --sb-w: 260px;
 }
-
+ 
 /* ─────────────────────────────────────────────────────────────────
    SHELL — fixed, starts at top-left of content area (right of nav)
 ───────────────────────────────────────────────────────────────── */
@@ -77,7 +78,7 @@ html, body { overflow: hidden; height: 100%; }
     font-family: 'Outfit', sans-serif;
     z-index: 100;
 }
-
+ 
 /* ═══════════════════════════════════════════════════════════════
    SIDEBAR
 ═══════════════════════════════════════════════════════════════ */
@@ -90,13 +91,13 @@ html, body { overflow: hidden; height: 100%; }
     border-right: 1px solid var(--b1);
     overflow: hidden;
 }
-
+ 
 .ms-sb-head {
     padding: 16px 14px 12px;
     border-bottom: 1px solid var(--b0);
     flex-shrink: 0;
 }
-
+ 
 .ms-sb-title {
     display: flex;
     align-items: center;
@@ -118,7 +119,7 @@ html, body { overflow: hidden; height: 100%; }
     text-transform: uppercase;
     color: var(--t3);
 }
-
+ 
 .ms-search {
     display: flex;
     align-items: center;
@@ -142,7 +143,7 @@ html, body { overflow: hidden; height: 100%; }
     font-size: 0.78rem; width: 100%; min-width: 0;
 }
 .ms-search-input::placeholder { color: var(--t4); }
-
+ 
 .ms-cases-list {
     flex: 1 1 0;
     min-height: 0;
@@ -153,7 +154,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-cases-list::-webkit-scrollbar { width: 3px; }
 .ms-cases-list::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.18); border-radius: 3px; }
-
+ 
 .ms-no-cases {
     padding: 28px 10px;
     text-align: center;
@@ -161,7 +162,7 @@ html, body { overflow: hidden; height: 100%; }
     color: var(--t4);
     line-height: 1.7;
 }
-
+ 
 .ms-case-link {
     display: flex;
     align-items: center;
@@ -186,7 +187,7 @@ html, body { overflow: hidden; height: 100%; }
     border-radius: 0 3px 3px 0;
     background: linear-gradient(180deg, var(--p), var(--p2));
 }
-
+ 
 .ms-case-avi {
     width: 34px; height: 34px;
     border-radius: var(--r-sm);
@@ -206,7 +207,7 @@ html, body { overflow: hidden; height: 100%; }
     font-size: 0.65rem; color: var(--t4);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
+ 
 /* ═══════════════════════════════════════════════════════════════
    MAIN PANEL
 ═══════════════════════════════════════════════════════════════ */
@@ -218,7 +219,7 @@ html, body { overflow: hidden; height: 100%; }
     overflow: hidden;
     background: var(--void);
 }
-
+ 
 /* Flash */
 .ms-flash {
     display: flex; align-items: center; gap: 7px;
@@ -226,7 +227,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-flash.ok  { background: rgba(52,211,153,0.08); color: var(--success); border-bottom: 1px solid rgba(52,211,153,0.18); }
 .ms-flash.err { background: rgba(248,113,113,0.08); color: var(--danger);  border-bottom: 1px solid rgba(248,113,113,0.18); }
-
+ 
 /* Thread bar */
 .ms-thread-bar {
     display: flex; align-items: center; gap: 11px;
@@ -249,7 +250,7 @@ html, body { overflow: hidden; height: 100%; }
     line-height: 1.25; margin-bottom: 1px;
 }
 .ms-thread-sub { font-size: 0.67rem; color: var(--t3); }
-
+ 
 .ms-status-pill {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 3px 10px; border-radius: 20px;
@@ -259,7 +260,7 @@ html, body { overflow: hidden; height: 100%; }
     white-space: nowrap; flex-shrink: 0;
 }
 .ms-status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
-
+ 
 .ms-icon-btn {
     width: 30px; height: 30px; border-radius: var(--r-sm);
     background: rgba(255,255,255,0.035); border: 1px solid var(--b1);
@@ -268,7 +269,7 @@ html, body { overflow: hidden; height: 100%; }
     transition: background 0.12s, border-color 0.12s, color 0.12s;
 }
 .ms-icon-btn:hover { background: rgba(124,58,237,0.1); border-color: var(--b2); color: var(--t1); }
-
+ 
 /* Feed */
 .ms-feed {
     flex: 1 1 0; min-height: 0;
@@ -280,7 +281,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-feed::-webkit-scrollbar { width: 3px; }
 .ms-feed::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.16); border-radius: 3px; }
-
+ 
 /* Date divider */
 .ms-date-divider {
     display: flex; align-items: center; gap: 10px;
@@ -294,7 +295,7 @@ html, body { overflow: hidden; height: 100%; }
     font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.09em; white-space: nowrap;
 }
-
+ 
 /* Message row */
 .ms-msg {
     display: flex; gap: 8px; align-items: flex-end;
@@ -306,13 +307,13 @@ html, body { overflow: hidden; height: 100%; }
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: none; }
 }
-
+ 
 /* Collapse repeat avatars */
 .ms-msg.in  + .ms-msg.in  .ms-msg-avi,
 .ms-msg.out + .ms-msg.out .ms-msg-avi { visibility: hidden; }
 .ms-msg.in  + .ms-msg.in,
 .ms-msg.out + .ms-msg.out { margin-bottom: -2px; }
-
+ 
 .ms-msg-avi {
     width: 25px; height: 25px; border-radius: 6px;
     background: rgba(255,255,255,0.04); border: 1px solid var(--b1);
@@ -325,9 +326,9 @@ html, body { overflow: hidden; height: 100%; }
     color: #fff; border: none;
     box-shadow: 0 2px 7px rgba(124,58,237,0.26);
 }
-
+ 
 .ms-msg-body { max-width: 60%; min-width: 0; }
-
+ 
 .ms-bubble {
     padding: 8px 13px;
     font-size: 0.845rem; line-height: 1.6; word-break: break-word;
@@ -344,14 +345,14 @@ html, body { overflow: hidden; height: 100%; }
     color: #fff;
     box-shadow: 0 3px 12px rgba(124,58,237,0.22);
 }
-
+ 
 .ms-msg-foot {
     display: flex; align-items: center; gap: 5px;
     font-size: 0.59rem; color: var(--t4);
     margin-top: 3px; padding: 0 2px;
 }
 .ms-msg.out .ms-msg-foot { justify-content: flex-end; }
-
+ 
 .ms-badge-role {
     padding: 1px 5px; border-radius: 3px;
     font-size: 0.55rem; font-weight: 700;
@@ -359,7 +360,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-badge-role.lawyer { background: rgba(124,58,237,0.18); color: var(--p3); }
 .ms-badge-role.client { background: rgba(255,255,255,0.055); color: var(--t3); }
-
+ 
 /* Empty thread */
 .ms-empty {
     flex: 1; display: flex; flex-direction: column;
@@ -387,14 +388,14 @@ html, body { overflow: hidden; height: 100%; }
     background: rgba(124,58,237,0.08); border: 1px solid var(--b1);
     font-size: 0.69rem; color: var(--t3);
 }
-
+ 
 /* Pagination */
 .ms-pagi {
     flex-shrink: 0; padding: 8px 20px;
     border-top: 1px solid var(--b0); background: var(--surface);
     display: flex; justify-content: center;
 }
-
+ 
 /* Compose */
 .ms-compose {
     flex-shrink: 0;
@@ -434,7 +435,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-compose-btn:hover  { opacity: 0.85; }
 .ms-compose-btn:active { transform: scale(0.89); }
-
+ 
 .ms-compose-hint {
     margin-top: 5px; padding-left: 2px;
     font-size: 0.59rem; color: rgba(237,232,255,0.16);
@@ -446,7 +447,7 @@ html, body { overflow: hidden; height: 100%; }
     border-radius: 3px; font-size: 0.57rem;
     font-family: monospace; color: var(--t3); line-height: 1.5;
 }
-
+ 
 /* ═══════════════════════════════════════════════════════════════
    SPLASH — centered card when no case is selected
 ═══════════════════════════════════════════════════════════════ */
@@ -523,7 +524,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 .ms-splash-meta { font-size: 0.62rem; color: var(--t4); }
 .ms-splash-arr { color: var(--t4); flex-shrink: 0; }
-
+ 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════════ */
@@ -548,9 +549,9 @@ html, body { overflow: hidden; height: 100%; }
 @media (max-width: 420px) { .ms-sidebar { display: none; } }
 </style>
 @endpush
-
+ 
 <div class="ms-shell">
-
+ 
     {{-- ══ SIDEBAR ══ --}}
     <div class="ms-sidebar">
         <div class="ms-sb-head">
@@ -569,7 +570,7 @@ html, body { overflow: hidden; height: 100%; }
                 <input class="ms-search-input" type="text" placeholder="Search cases…" id="msCaseSearch" autocomplete="off">
             </div>
         </div>
-
+ 
         <div class="ms-cases-list">
             @forelse($cases as $caseItem)
                 <a href="{{ route('lawyer.messages.index', $caseItem) }}"
@@ -586,10 +587,10 @@ html, body { overflow: hidden; height: 100%; }
             @endforelse
         </div>
     </div>
-
+ 
     {{-- ══ MAIN PANEL ══ --}}
     <div class="ms-main">
-
+ 
         @if(session('success'))
             <div class="ms-flash ok">
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -602,9 +603,9 @@ html, body { overflow: hidden; height: 100%; }
                 {{ session('error') }}
             </div>
         @endif
-
+ 
         @if(isset($activeCase))
-
+ 
             {{-- Thread bar --}}
             <div class="ms-thread-bar">
                 <div class="ms-thread-avi">{{ strtoupper(substr($activeCase->title, 0, 2)) }}</div>
@@ -622,12 +623,12 @@ html, body { overflow: hidden; height: 100%; }
                     </svg>
                 </a>
             </div>
-
+ 
             {{-- Feed --}}
             <div class="ms-feed" id="msFeed">
                 @forelse($messages as $message)
                     @php $sent = $message->sender_id === auth()->id(); @endphp
-                    <div class="ms-msg {{ $sent ? 'out' : 'in' }}">
+                    <div class="ms-msg {{ $sent ? 'out' : 'in' }}" data-msg-id="{{ $message->id }}">
                         <div class="ms-msg-avi">{{ strtoupper(substr($message->sender->name, 0, 1)) }}</div>
                         <div class="ms-msg-body">
                             <div class="ms-bubble">{{ $message->body }}</div>
@@ -655,11 +656,11 @@ html, body { overflow: hidden; height: 100%; }
                     </div>
                 @endforelse
             </div>
-
+ 
             @if(isset($messages) && method_exists($messages, 'hasPages') && $messages->hasPages())
                 <div class="ms-pagi">{{ $messages->links() }}</div>
             @endif
-
+ 
             {{-- Compose --}}
             <div class="ms-compose">
                 <form class="ms-compose-form" method="POST" action="{{ route('lawyer.messages.store') }}" id="msForm">
@@ -685,9 +686,9 @@ html, body { overflow: hidden; height: 100%; }
                     <kbd>Enter</kbd> send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> new line
                 </div>
             </div>
-
+ 
         @else
-
+ 
             {{-- No case selected — centered card --}}
             <div class="ms-splash">
                 <div class="ms-splash-card">
@@ -698,7 +699,7 @@ html, body { overflow: hidden; height: 100%; }
                     </div>
                     <h2>Select a case to begin</h2>
                     <p>Pick a case from the sidebar to view and continue the conversation with your client.</p>
-
+ 
                     @if($cases->isNotEmpty())
                         <div class="ms-splash-cases">
                             <div class="ms-splash-cases-label">Your cases</div>
@@ -716,38 +717,133 @@ html, body { overflow: hidden; height: 100%; }
                     @endif
                 </div>
             </div>
-
+ 
         @endif
-
+ 
     </div>{{-- /ms-main --}}
 </div>{{-- /ms-shell --}}
-
+ 
 @push('scripts')
 <script>
 (function () {
-    // Scroll feed to bottom on load
-    const feed = document.getElementById('msFeed');
-    if (feed) feed.scrollTop = feed.scrollHeight;
+    const feed    = document.getElementById('msFeed');
+    const ta      = document.getElementById('msCompose');
+    const form    = document.getElementById('msForm');
+    const search  = document.getElementById('msCaseSearch');
+    const POLL_MS = 3000;
+
+    function scrollBottom() { if (feed) feed.scrollTop = feed.scrollHeight; }
+    scrollBottom();
+
+    let lastId = 0;
+    document.querySelectorAll('[data-msg-id]').forEach(el => {
+        const id = parseInt(el.dataset.msgId, 10);
+        if (id > lastId) lastId = id;
+    });
+
+    const ME = {{ auth()->id() }};
+
+    function buildBubble(msg) {
+        const out  = msg.sender_id === ME;
+        const role = (msg.sender_role === 'lawyer') ? 'lawyer' : 'client';
+        const lbl  = (msg.sender_role === 'lawyer') ? 'Lawyer' : 'Client';
+        const init = msg.sender_name.charAt(0).toUpperCase();
+        const row  = document.createElement('div');
+        row.className = 'ms-msg ' + (out ? 'out' : 'in');
+        row.dataset.msgId = msg.id;
+        row.innerHTML = '<div class="ms-msg-avi">' + init + '</div>'
+            + '<div class="ms-msg-body">'
+            + '<div class="ms-bubble">' + msg.body + '</div>'
+            + '<div class="ms-msg-foot">'
+            + '<span class="ms-badge-role ' + role + '">' + lbl + '</span> '
+            + msg.created_at
+            + '</div></div>';
+        return row;
+    }
+
+    function clearEmpty() {
+        const e = feed && feed.querySelector('.ms-empty');
+        if (e) e.remove();
+    }
+
+    // AJAX send
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const body = ta.value.trim();
+            if (!body) return;
+            const data = new FormData(form);
+            const btn  = form.querySelector('.ms-compose-btn');
+            if (btn) btn.disabled = true;
+            const csrf = document.querySelector('meta[name="csrf-token"]').content;
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: data,
+            })
+            .then(r => r.json())
+            .then(json => {
+                if (json.success && json.data) {
+                    clearEmpty();
+                    const m = json.data;
+                    const msg = {
+                        id:          m.id,
+                        sender_id:   m.sender_id,
+                        sender_name: m.sender ? m.sender.name : 'Me',
+                        sender_role: m.sender ? m.sender.role : 'lawyer',
+                        body:        m.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'),
+                        created_at:  new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+                    };
+                    if (msg.id > lastId) lastId = msg.id;
+                    feed.appendChild(buildBubble(msg));
+                    scrollBottom();
+                    ta.value = '';
+                    ta.style.height = 'auto';
+                }
+            })
+            .catch(() => {})
+            .finally(() => { if (btn) btn.disabled = false; });
+        });
+    }
 
     // Auto-grow textarea + Enter to send
-    const ta = document.getElementById('msCompose');
     if (ta) {
-        const grow = () => {
-            ta.style.height = 'auto';
-            ta.style.height = Math.min(ta.scrollHeight, 110) + 'px';
-        };
+        const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 110) + 'px'; };
         ta.addEventListener('input', grow);
         ta.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                document.getElementById('msForm')?.submit();
+                form && form.dispatchEvent(new Event('submit', {bubbles:true, cancelable:true}));
             }
         });
         grow();
     }
 
+    // Polling every 3s
+    @isset($activeCase)
+    const pollUrl = '{{ route("lawyer.messages.index", $activeCase) }}';
+    const csrf2   = document.querySelector('meta[name="csrf-token"]').content;
+    function poll() {
+        fetch(pollUrl + '?after=' + lastId, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf2 },
+        })
+        .then(r => r.json())
+        .then(json => {
+            if (!json.messages || !json.messages.length) return;
+            clearEmpty();
+            const atBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 60;
+            json.messages.forEach(msg => {
+                if (msg.id > lastId) lastId = msg.id;
+                feed.appendChild(buildBubble(msg));
+            });
+            if (atBottom) scrollBottom();
+        })
+        .catch(() => {});
+    }
+    setInterval(poll, POLL_MS);
+    @endisset
+
     // Live case search
-    const search = document.getElementById('msCaseSearch');
     if (search) {
         search.addEventListener('input', function () {
             const q = this.value.toLowerCase();

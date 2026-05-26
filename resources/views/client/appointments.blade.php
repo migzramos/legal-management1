@@ -1,14 +1,14 @@
 @extends('layouts.client')
 @section('title', 'My Appointments')
 @section('content')
-
+ 
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 @if(session('error'))
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
-
+ 
 <div class="section-header">
     <div>
         <h1 class="section-title">My Appointments</h1>
@@ -21,7 +21,7 @@
         Book Appointment
     </button>
 </div>
-
+ 
 <div class="tabs" style="margin-bottom:20px;">
     @foreach(['all'=>'All','pending'=>'Pending','confirmed'=>'Confirmed','completed'=>'Completed','cancelled'=>'Cancelled'] as $key=>$label)
     <a href="{{ route('client.appointments.index', ['filter'=>$key==='all'?null:$key]) }}"
@@ -30,7 +30,7 @@
     </a>
     @endforeach
 </div>
-
+ 
 <div style="display:flex;flex-direction:column;gap:12px;">
     @forelse($appointments as $appt)
     <div class="card">
@@ -94,14 +94,14 @@
     </div>
     @endforelse
 </div>
-
+ 
 {{-- Pagination --}}
 @if($appointments->hasPages())
     <div style="margin-top:20px;">
         {{ $appointments->links() }}
     </div>
 @endif
-
+ 
 {{-- Booking Modal --}}
 <div class="modal-overlay" id="bookingModal">
     <div class="modal-box">
@@ -118,29 +118,36 @@
             </button>
         </div>
         <div class="modal-body">
-
-            {{-- ✅ Show validation / booking errors inside the modal --}}
+ 
+            {{-- Show validation / booking errors inside the modal --}}
             @if($errors->any())
                 <div class="alert alert-error" style="margin-bottom:16px;">
                     <strong>Booking failed:</strong> {{ $errors->first() }}
                 </div>
             @endif
-
+ 
             <form method="POST" action="{{ route('client.appointments.store') }}">
                 @csrf
+ 
+                {{-- Lawyer Select --}}
                 <div class="form-group">
                     <label class="form-label">Select Lawyer</label>
-                    <select name="lawyer_id" class="form-control" required>
+                    <select name="lawyer_id" class="form-control" required id="lawyerSelect">
                         <option value="">— Choose a lawyer —</option>
                         @foreach($lawyers ?? [] as $lawyer)
                             <option value="{{ $lawyer->id }}"
+                                data-rate="{{ $lawyer->billingRate->hourly_rate ?? 0 }}"
                                 {{ old('lawyer_id') == $lawyer->id ? 'selected' : '' }}>
                                 {{ $lawyer->name }}
                             </option>
                         @endforeach
                     </select>
+                    <div id="hourlyRateDisplay" style="margin-top:8px;font-size:0.82rem;color:var(--text-muted);display:none;">
+                        Hourly Rate: <strong id="hourlyRateValue" style="color:var(--purple-light);"></strong>
+                    </div>
                 </div>
-
+ 
+                {{-- Date & Duration --}}
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                     <div class="form-group">
                         <label class="form-label">Date &amp; Time</label>
@@ -158,20 +165,39 @@
                         </select>
                     </div>
                 </div>
-
+ 
+                {{-- Purpose Dropdown --}}
                 <div class="form-group">
                     <label class="form-label">Purpose</label>
-                    <input type="text" name="purpose" class="form-control"
-                           placeholder="e.g. Case review, document signing..."
-                           value="{{ old('purpose') }}" required>
+                    <select name="purpose" class="form-control" required id="purposeSelect">
+                        <option value="">— Select a purpose —</option>
+                        <option value="Initial Consultation"   {{ old('purpose') == 'Initial Consultation'   ? 'selected' : '' }}>Initial Consultation</option>
+                        <option value="Follow-up Consultation" {{ old('purpose') == 'Follow-up Consultation' ? 'selected' : '' }}>Follow-up Consultation</option>
+                        <option value="Case Evaluation"        {{ old('purpose') == 'Case Evaluation'        ? 'selected' : '' }}>Case Evaluation</option>
+                        <option value="Legal Advice"           {{ old('purpose') == 'Legal Advice'           ? 'selected' : '' }}>Legal Advice</option>
+                        <option value="Document Review"        {{ old('purpose') == 'Document Review'        ? 'selected' : '' }}>Document Review</option>
+                        <option value="Document Preparation"   {{ old('purpose') == 'Document Preparation'   ? 'selected' : '' }}>Document Preparation</option>
+                        <option value="Case Filing"            {{ old('purpose') == 'Case Filing'            ? 'selected' : '' }}>Case Filing</option>
+                        <option value="Court Representation"   {{ old('purpose') == 'Court Representation'   ? 'selected' : '' }}>Court Representation</option>
+                        <option value="Mediation / Settlement" {{ old('purpose') == 'Mediation / Settlement' ? 'selected' : '' }}>Mediation / Settlement</option>
+                        <option value="Notarial Services"      {{ old('purpose') == 'Notarial Services'      ? 'selected' : '' }}>Notarial Services</option>
+                        <option value="Billing Inquiry"        {{ old('purpose') == 'Billing Inquiry'        ? 'selected' : '' }}>Billing Inquiry</option>
+                        <option value="Case Update"            {{ old('purpose') == 'Case Update'            ? 'selected' : '' }}>Case Update</option>
+                        <option value="Other"                  {{ old('purpose') == 'Other'                  ? 'selected' : '' }}>Other (Specify)</option>
+                    </select>
+                    <input type="text" id="purposeOther" name="purpose_other" class="form-control"
+                           placeholder="Please describe your purpose..."
+                           value="{{ old('purpose_other') }}"
+                           style="margin-top:8px;display:{{ old('purpose') == 'Other' ? 'block' : 'none' }};">
                 </div>
-
+ 
+                {{-- Additional Notes --}}
                 <div class="form-group" style="margin-bottom:0;">
                     <label class="form-label">Additional Notes</label>
                     <textarea name="notes" class="form-control" rows="3"
                               placeholder="Any additional details...">{{ old('notes') }}</textarea>
                 </div>
-
+ 
                 <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:18px;margin-top:18px;border-top:1px solid var(--border);">
                     <button type="button" class="btn-secondary"
                             onclick="document.getElementById('bookingModal').classList.remove('active')">
@@ -183,17 +209,51 @@
         </div>
     </div>
 </div>
-
+ 
 <script>
     // Close modal when clicking backdrop
     document.getElementById('bookingModal').addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('active');
     });
-
-    // ✅ Auto re-open modal if there were validation errors so user sees the message
+ 
+    // Auto re-open modal if there were validation errors so user sees the message
     @if($errors->any())
         document.getElementById('bookingModal').classList.add('active');
     @endif
+ 
+    // Show hourly rate when lawyer is selected
+    const lawyerSelect = document.getElementById('lawyerSelect');
+    const rateDisplay  = document.getElementById('hourlyRateDisplay');
+    const rateValue    = document.getElementById('hourlyRateValue');
+ 
+    lawyerSelect.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        const rate = parseFloat(selected.dataset.rate || 0);
+        if (this.value && rate > 0) {
+            rateValue.textContent = '₱' + rate.toFixed(2) + ' / hour';
+            rateDisplay.style.display = 'block';
+        } else if (this.value) {
+            rateValue.textContent = 'Not yet configured';
+            rateDisplay.style.display = 'block';
+        } else {
+            rateDisplay.style.display = 'none';
+        }
+    });
+ 
+    // Show/hide "Other" text input for purpose
+    const purposeSelect = document.getElementById('purposeSelect');
+    const purposeOther  = document.getElementById('purposeOther');
+ 
+    purposeSelect.addEventListener('change', function () {
+        if (this.value === 'Other') {
+            purposeOther.style.display = 'block';
+            purposeOther.required = true;
+        } else {
+            purposeOther.style.display = 'none';
+            purposeOther.required = false;
+            purposeOther.value = '';
+        }
+    });
 </script>
-
+ 
 @endsection

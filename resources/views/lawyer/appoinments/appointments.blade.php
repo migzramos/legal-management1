@@ -1,4 +1,4 @@
-@extends('lawyer.layout')
+@extends('layouts.lawyer')
 
 @section('title', 'Appointments')
 

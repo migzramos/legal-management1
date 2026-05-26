@@ -7,7 +7,6 @@ use App\Http\Requests\StoreCaseRequest;
 use App\Http\Requests\UpdateCaseRequest;
 use App\Mail\CaseStatusUpdated;
 use App\Models\LegalCase;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Mail;
 
@@ -117,14 +116,16 @@ class CaseController extends Controller
             ->with('success', 'Case updated successfully.');
     }
 
-    public function destroy(LegalCase $case): JsonResponse
+        public function destroy(LegalCase $case): RedirectResponse
     {
         $this->authorize('delete', $case);
 
         $this->auditLog('deleted_case', $case);
         $case->delete();
 
-        return response()->json(['message' => 'Case deleted successfully.']);
+        return redirect()
+            ->route('lawyer.cases.index')
+            ->with('success', 'Case deleted successfully.');
     }
 
     public function updateStatus(LegalCase $case, string $status): RedirectResponse
