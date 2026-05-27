@@ -28,15 +28,15 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Force HTTPS in production
+        if (config('app.env') === 'production') {
+            \URL::forceScheme('https');
+        }
+
         // ─── Policies ────────────────────────────────────────────────
         Gate::policy(Appointment::class, AppointmentPolicy::class);
         Gate::policy(User::class,        AdminPolicy::class);
 
-        // FIX BUG 5: Register CasePolicy and InvoicePolicy — both existed but were
-        // never registered, meaning $this->authorize() calls in CaseController and
-        // InvoiceController either silently passed or threw AuthorizationException
-        // depending on Laravel's policy-miss behaviour. Any authenticated user
-        // could previously update/delete cases or invoices that did not belong to them.
         Gate::policy(LegalCase::class, CasePolicy::class);
         Gate::policy(Invoice::class,   InvoicePolicy::class);
 
