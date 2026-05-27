@@ -1,4 +1,3 @@
-
 FROM php:8.4-cli
  
 # Install system dependencies
@@ -55,14 +54,8 @@ RUN mkdir -p storage/framework/sessions \
     bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
  
-# Cache Laravel config, routes, and views
-RUN php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache
- 
 # Expose the port Render uses
 EXPOSE 10000
  
-# Start Laravel server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]
- 
+# Cache config/routes at runtime (so env vars are available), then serve
+CMD php artisan config:cache && php artisan route:cache && php artisan serve --host=0.0.0.0 --port=10000
